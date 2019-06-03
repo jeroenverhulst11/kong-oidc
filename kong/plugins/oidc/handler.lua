@@ -66,7 +66,7 @@ end
 
 function make_oidc(oidcConfig)
     local res, err
-  ngx.log(ngx.DEBUG, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
+  ngx.log(ngx.WARN, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
     if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not require("resty.session").open(oidcConfig) then
         ngx.log(ngx.ERROR, "Bearer only should contain Authorization header or must have a valid session.")
         err = "Bearer only should contain Authorization header or must have a valid session.";
@@ -126,7 +126,7 @@ function introspect(oidcConfig)
     ngx.log(ngx.DEBUG, "OidcHandler introspect succeeded, requested path: " .. ngx.var.request_uri)
     return res
   end
-    ngx.log(ngx.ERROR, "Ignoring introspect: no bearer token and introspect url set.")
+    ngx.log(ngx.WARN, "Ignoring introspect: no bearer token and introspect url set.")
 
     return nil
 end
