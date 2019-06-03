@@ -1,4 +1,4 @@
-package = "cnnective-kong-oidc"
+package = "connective-kong-oidc"
 version = "1.0.0-0"
 source = {
     url = "git://github.com/jeroenverhulst11/kong-oidc",
