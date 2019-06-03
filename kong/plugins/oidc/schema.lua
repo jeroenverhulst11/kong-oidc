@@ -1,7 +1,7 @@
 return {
   no_consumer = true,
   fields = {
-      anonymous = { type = "string", uuid = true },
+      anonymous = { type = "string", required = false},
 
       client_id = { type = "string", required = true },
     client_secret = { type = "string", required = true },
