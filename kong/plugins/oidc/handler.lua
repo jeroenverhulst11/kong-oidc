@@ -3,6 +3,7 @@ local OidcHandler = BasePlugin:extend()
 local utils = require("kong.plugins.oidc.utils")
 local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
+local restySession = require("resty.session")
 
 local singletons = require "kong.singletons"
 local constants = require "kong.constants"
@@ -16,7 +17,7 @@ end
 
 function OidcHandler:access(config)
   OidcHandler.super.access(self)
-
+  restySession.open()
     if ngx.ctx.authenticated_credential and config.anonymous ~= "" then
         -- we're already authenticated, and we're configured for using anonymous,
         -- hence we're in a logical OR between auth methods and we're already done.
@@ -64,13 +65,16 @@ function handle(oidcConfig)
 end
 
 function make_oidc(oidcConfig)
+    local res, err
   ngx.log(ngx.DEBUG, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
-  local res, err = require("resty.openidc").authenticate(oidcConfig)
-  if err then
-    if oidcConfig.recovery_page_path then
-      ngx.log(ngx.DEBUG, "Entering recovery page: " .. oidcConfig.recovery_page_path)
-      ngx.redirect(oidcConfig.recovery_page_path)
+    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not require("resty.session").open(oidcConfig) then
+        ngx.log(ngx.ERROR, "Bearer only should contain Authorization header or must have a valid session.")
+        err = "Bearer only should contain Authorization header or must have a valid session.";
     end
+    if not err then
+        res, err = require("resty.openidc").authenticate(oidcConfig)
+    end
+  if err then
     --utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
       if oidcConfig.anonymous ~= "" then
           -- get anonymous user
@@ -84,6 +88,10 @@ function make_oidc(oidcConfig)
           set_consumer(consumer, nil, nil)
 
       else
+          if oidcConfig.recovery_page_path then
+              ngx.log(ngx.DEBUG, "Entering recovery page: " .. oidcConfig.recovery_page_path)
+              ngx.redirect(oidcConfig.recovery_page_path)
+          end
           utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
       end
   end
@@ -95,7 +103,6 @@ function introspect(oidcConfig)
     local res, err = require("resty.openidc").introspect(oidcConfig)
     if err then
       if oidcConfig.bearer_only == "yes" then
-        ngx.header["WWW-Authenticate"] = 'Bearer realm="' .. oidcConfig.realm .. '",error="' .. err .. '"'
         --utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
           if oidcConfig.anonymous ~= "" then
               -- get anonymous user
@@ -109,6 +116,7 @@ function introspect(oidcConfig)
               set_consumer(consumer, nil, nil)
 
           else
+              ngx.header["WWW-Authenticate"] = 'Bearer realm="' .. oidcConfig.realm .. '",error="' .. err .. '"'
               utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
           end
 
