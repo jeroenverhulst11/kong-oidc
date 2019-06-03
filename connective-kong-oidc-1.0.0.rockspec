@@ -1,7 +1,7 @@
-package = "kong-oidc"
-version = "1.1.0-1"
+package = "cnnective-kong-oidc"
+version = "1.0.0"
 source = {
-    url = "git://github.com/Revomatico/kong-oidc",
+    url = "git://github.com/jeroenverhulst11/kong-oidc",
     tag = "master",
     dir = "kong-oidc"
 }
