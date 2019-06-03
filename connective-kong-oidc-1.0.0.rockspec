@@ -1,5 +1,5 @@
 package = "cnnective-kong-oidc"
-version = "1.0.0"
+version = "1.0.0-0"
 source = {
     url = "git://github.com/jeroenverhulst11/kong-oidc",
     tag = "master",
