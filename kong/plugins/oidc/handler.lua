@@ -67,7 +67,7 @@ end
 function make_oidc(oidcConfig)
     local res, err
   ngx.log(ngx.WARN, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
-    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not require("resty.session").open(oidcConfig) then
+    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not require("resty.session").start(oidcConfig) then
         ngx.log(ngx.ERROR, "Bearer only should contain Authorization header or must have a valid session.")
         err = "Bearer only should contain Authorization header or must have a valid session.";
     end
