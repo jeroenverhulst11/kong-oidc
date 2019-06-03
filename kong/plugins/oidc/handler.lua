@@ -4,7 +4,6 @@ local utils = require("kong.plugins.oidc.utils")
 local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
 
-local responses = kong.response
 local singletons = require "kong.singletons"
 local constants = require "kong.constants"
 
@@ -80,7 +79,7 @@ function make_oidc(oidcConfig)
               load_consumer_into_memory,
               oidcConfig.anonymous, true)
           if err then
-              return responses.send_HTTP_INTERNAL_SERVER_ERROR(err)
+              utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
           end
           set_consumer(consumer, nil, nil)
 
@@ -105,7 +104,7 @@ function introspect(oidcConfig)
                   load_consumer_into_memory,
                   oidcConfig.anonymous, true)
               if err then
-                  return responses.send_HTTP_INTERNAL_SERVER_ERROR(err)
+                  utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
               end
               set_consumer(consumer, nil, nil)
 
