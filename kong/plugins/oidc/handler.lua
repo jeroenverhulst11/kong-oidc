@@ -126,7 +126,9 @@ function introspect(oidcConfig)
     ngx.log(ngx.DEBUG, "OidcHandler introspect succeeded, requested path: " .. ngx.var.request_uri)
     return res
   end
-  return nil
+    ngx.log(ngx.ERROR, "Ignoring introspect: no bearer token and introspect url set.")
+
+    return nil
 end
 
 -- TESTING
