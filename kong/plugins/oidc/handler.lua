@@ -4,9 +4,9 @@ local utils = require("kong.plugins.oidc.utils")
 local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
 
+local responses = kong.response
 local singletons = require "kong.singletons"
 local constants = require "kong.constants"
-local responses = require "kong.tools.responses"
 
 OidcHandler.PRIORITY = 1000
 
