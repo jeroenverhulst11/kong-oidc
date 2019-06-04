@@ -101,9 +101,9 @@ function handle(oidcConfig)
         end
     end
 
-    if response == nil then
+    --if response == nil then
         response = make_oidc(oidcConfig)
-    end
+    --end
 
     if response then
         if (not oidcConfig.disable_userinfo_header
