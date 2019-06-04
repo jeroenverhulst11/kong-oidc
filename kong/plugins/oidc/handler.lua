@@ -67,7 +67,7 @@ end
 
 function make_oidc(oidcConfig)
     local res, err
-    ngx.log(ngx.WARN, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
+    ngx.log(ngx.DEBUG, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
     local session, existed = require("resty.session").start(oidcConfig);
     kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
     kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
@@ -114,7 +114,7 @@ function introspect(oidcConfig)
               -- get anonymous user
               local consumer_cache_key = singletons.db.consumers:cache_key(oidcConfig.anonymous)
               local consumer, err      = singletons.cache:get(consumer_cache_key, nil,
-                  load_consumer_into_memory,
+                  load_consumer,
                   oidcConfig.anonymous, true)
               if err then
                   utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
@@ -177,6 +177,17 @@ local function set_consumer(consumer, credential, token)
         clear_header(constants.HEADERS.CREDENTIAL_USERNAME)
         set_header(constants.HEADERS.ANONYMOUS, true)
     end
+end
+
+local function load_consumer(consumer_id, anonymous)
+    local result, err = kong.db.consumers:select { id = consumer_id }
+    if not result then
+        if anonymous and not err then
+            err = 'anonymous consumer "' .. consumer_id .. '" not found'
+        end
+        return nil, err
+    end
+    return result
 end
 
 return OidcHandler
