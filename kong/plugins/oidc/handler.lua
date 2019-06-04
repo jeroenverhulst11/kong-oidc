@@ -17,7 +17,7 @@ end
 
 function OidcHandler:access(config)
     OidcHandler.super.access(self)
-    if ngx.ctx.authenticated_credential and config.anonymous ~= '' then
+    if ngx.ctx.authenticated_credential and not config.anonymous ~= '' then
         -- we're already authenticated, and we're configured for using anonymous,
         -- hence we're in a logical OR between auth methods and we're already done.
         return
@@ -134,7 +134,7 @@ function make_oidc(oidcConfig)
         res, err = require("resty.openidc").authenticate(oidcConfig)
     end
     if err then
-        if oidcConfig.anonymous ~= '' then
+        if not oidcConfig.anonymous ~= '' then
             -- get anonymous user
             local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
             local consumer, err = kong.cache:get(consumer_cache_key, nil,
@@ -163,7 +163,7 @@ function introspect(oidcConfig)
         if err then
             if oidcConfig.bearer_only == "yes" then
                 --utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
-                if oidcConfig.anonymous ~= '' then
+                if not oidcConfig.anonymous ~= '' then
                     -- get anonymous user
                     local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
                     local consumer, err = kong.cache:get(consumer_cache_key, nil,
