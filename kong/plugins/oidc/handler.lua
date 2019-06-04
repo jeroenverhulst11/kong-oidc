@@ -37,6 +37,61 @@ function OidcHandler:access(config)
   ngx.log(ngx.DEBUG, "OidcHandler done")
 end
 
+
+
+local function set_consumer(consumer, credential, token)
+    local set_header = kong.service.request.set_header
+    local clear_header = kong.service.request.clear_header
+
+    if consumer and consumer.id then
+        set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
+    else
+        clear_header(constants.HEADERS.CONSUMER_ID)
+    end
+
+    if consumer and consumer.custom_id then
+        set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
+    else
+        clear_header(constants.HEADERS.CONSUMER_CUSTOM_ID)
+    end
+
+    if consumer and consumer.username then
+        set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
+    else
+        clear_header(constants.HEADERS.CONSUMER_USERNAME)
+    end
+
+    kong.client.authenticate(consumer, credential)
+
+    if credential then
+        kong.ctx.shared.authenticated_jwt_token = token -- TODO: wrap in a PDK function?
+        ngx.ctx.authenticated_jwt_token = token  -- backward compatibilty only
+
+        if credential.username then
+            set_header(constants.HEADERS.CREDENTIAL_USERNAME, credential.username)
+        else
+            clear_header(constants.HEADERS.CREDENTIAL_USERNAME)
+        end
+
+        clear_header(constants.HEADERS.ANONYMOUS)
+
+    else
+        clear_header(constants.HEADERS.CREDENTIAL_USERNAME)
+        set_header(constants.HEADERS.ANONYMOUS, true)
+    end
+end
+
+local function load_consumer(consumer_id, anonymous)
+    local result, err = kong.db.consumers:select { id = consumer_id }
+    if not result then
+        if anonymous and not err then
+            err = 'anonymous consumer "' .. consumer_id .. '" not found'
+        end
+        return nil, err
+    end
+    return result
+end
+
 function handle(oidcConfig)
   local response
   if oidcConfig.introspection_endpoint then
@@ -135,59 +190,6 @@ function introspect(oidcConfig)
     ngx.log(ngx.WARN, "Ignoring introspect: no bearer token and introspect url set.")
 
     return nil
-end
-
-local function set_consumer(consumer, credential, token)
-    local set_header = kong.service.request.set_header
-    local clear_header = kong.service.request.clear_header
-
-    if consumer and consumer.id then
-        set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
-    else
-        clear_header(constants.HEADERS.CONSUMER_ID)
-    end
-
-    if consumer and consumer.custom_id then
-        set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
-    else
-        clear_header(constants.HEADERS.CONSUMER_CUSTOM_ID)
-    end
-
-    if consumer and consumer.username then
-        set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
-    else
-        clear_header(constants.HEADERS.CONSUMER_USERNAME)
-    end
-
-    kong.client.authenticate(consumer, credential)
-
-    if credential then
-        kong.ctx.shared.authenticated_jwt_token = token -- TODO: wrap in a PDK function?
-        ngx.ctx.authenticated_jwt_token = token  -- backward compatibilty only
-
-        if credential.username then
-            set_header(constants.HEADERS.CREDENTIAL_USERNAME, credential.username)
-        else
-            clear_header(constants.HEADERS.CREDENTIAL_USERNAME)
-        end
-
-        clear_header(constants.HEADERS.ANONYMOUS)
-
-    else
-        clear_header(constants.HEADERS.CREDENTIAL_USERNAME)
-        set_header(constants.HEADERS.ANONYMOUS, true)
-    end
-end
-
-local function load_consumer(consumer_id, anonymous)
-    local result, err = kong.db.consumers:select { id = consumer_id }
-    if not result then
-        if anonymous and not err then
-            err = 'anonymous consumer "' .. consumer_id .. '" not found'
-        end
-        return nil, err
-    end
-    return result
 end
 
 return OidcHandler
