@@ -85,7 +85,7 @@ function make_oidc(oidcConfig)
           -- get anonymous user
           local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
           local consumer, err      = kong.cache:get(consumer_cache_key, nil,
-              load_consume,
+              load_consumer,
               oidcConfig.anonymous, true)
           if err then
               kong.log.err(err)
