@@ -127,6 +127,7 @@ function make_oidc(oidcConfig)
     kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
     kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
     kong.log.debug("Existing session: " .. tostring(session.present))
+    kong.log.warn("Anonymous: " .. tostring(oidcConfig.anonymous))
     if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present then
         err = "Bearer only should contain Authorization header or must have a valid session.";
         kong.log.warn(err)
@@ -146,7 +147,6 @@ function make_oidc(oidcConfig)
                 return kong.response.exit(500, { message = "An unexpected error occurred" })
             end
             set_consumer(consumer, nil, nil)
-
         else
             if oidcConfig.recovery_page_path then
                 ngx.log(ngx.DEBUG, "Entering recovery page: " .. oidcConfig.recovery_page_path)
@@ -163,9 +163,7 @@ function introspect(oidcConfig)
         local res, err = require("resty.openidc").introspect(oidcConfig)
         if err then
             if oidcConfig.bearer_only == "yes" then
-                --utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
                 if not (oidcConfig.anonymous == nil or oidcConfig.anonymous == "") then
-                    -- get anonymous user
                     local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
                     local consumer, err = kong.cache:get(consumer_cache_key, nil,
                         load_consumer,
