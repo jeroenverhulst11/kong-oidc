@@ -29,6 +29,7 @@ function OidcHandler:access(config)
   if filter.shouldProcessRequest(oidcConfig) then
     session.configure(config)
     handle(oidcConfig)
+
   else
     ngx.log(ngx.DEBUG, "OidcHandler ignoring request, path: " .. ngx.var.request_uri)
   end
@@ -66,8 +67,9 @@ end
 
 function make_oidc(oidcConfig)
     local res, err
-  ngx.log(ngx.WARN, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
-    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not require("resty.session").start(oidcConfig) then
+    ngx.log(ngx.WARN, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
+    local session, existed = require("resty.session").start(oidcConfig);
+    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not existed then
         ngx.log(ngx.ERROR, "Bearer only should contain Authorization header or must have a valid session.")
         err = "Bearer only should contain Authorization header or must have a valid session.";
     end
@@ -78,12 +80,13 @@ function make_oidc(oidcConfig)
     --utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
       if oidcConfig.anonymous ~= "" then
           -- get anonymous user
-          local consumer_cache_key = singletons.db.consumers:cache_key(oidcConfig.anonymous)
-          local consumer, err      = singletons.cache:get(consumer_cache_key, nil,
-              load_consumer_into_memory,
+          local consumer_cache_key = kong.db.consumers:cache_key(conf.anonymous)
+          local consumer, err      = kong.cache:get(consumer_cache_key, nil,
+              load_consume,
               oidcConfig.anonymous, true)
           if err then
-              utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
+              kong.log.err(err)
+              return kong.response.exit(500, { message = "An unexpected error occurred" })
           end
           set_consumer(consumer, nil, nil)
 
@@ -92,7 +95,7 @@ function make_oidc(oidcConfig)
               ngx.log(ngx.DEBUG, "Entering recovery page: " .. oidcConfig.recovery_page_path)
               ngx.redirect(oidcConfig.recovery_page_path)
           end
-          utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
+          return kong.response.exit(err.status, err.errors or { message = err.message })
       end
   end
   return res
@@ -131,22 +134,46 @@ function introspect(oidcConfig)
     return nil
 end
 
--- TESTING
-
 local function set_consumer(consumer, credential, token)
-    ngx_set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
-    ngx_set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
-    ngx_set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
-    ngx.ctx.authenticated_consumer = consumer
-    if credential then
-        ngx_set_header("x-authenticated-scope", token.scope)
-        ngx_set_header("x-authenticated-userid", token.authenticated_userid)
-        ngx.ctx.authenticated_credential = credential
-        ngx_set_header(constants.HEADERS.ANONYMOUS, nil) -- in case of auth plugins concatenation
+    local set_header = kong.service.request.set_header
+    local clear_header = kong.service.request.clear_header
+
+    if consumer and consumer.id then
+        set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
     else
-        ngx_set_header(constants.HEADERS.ANONYMOUS, true)
+        clear_header(constants.HEADERS.CONSUMER_ID)
     end
 
+    if consumer and consumer.custom_id then
+        set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
+    else
+        clear_header(constants.HEADERS.CONSUMER_CUSTOM_ID)
+    end
+
+    if consumer and consumer.username then
+        set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
+    else
+        clear_header(constants.HEADERS.CONSUMER_USERNAME)
+    end
+
+    kong.client.authenticate(consumer, credential)
+
+    if credential then
+        kong.ctx.shared.authenticated_jwt_token = token -- TODO: wrap in a PDK function?
+        ngx.ctx.authenticated_jwt_token = token  -- backward compatibilty only
+
+        if credential.username then
+            set_header(constants.HEADERS.CREDENTIAL_USERNAME, credential.username)
+        else
+            clear_header(constants.HEADERS.CREDENTIAL_USERNAME)
+        end
+
+        clear_header(constants.HEADERS.ANONYMOUS)
+
+    else
+        clear_header(constants.HEADERS.CREDENTIAL_USERNAME)
+        set_header(constants.HEADERS.ANONYMOUS, true)
+    end
 end
 
 return OidcHandler
