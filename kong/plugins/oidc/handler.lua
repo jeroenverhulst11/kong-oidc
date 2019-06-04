@@ -17,7 +17,7 @@ end
 
 function OidcHandler:access(config)
     OidcHandler.super.access(self)
-    if ngx.ctx.authenticated_credential and config.anonymous then
+    if ngx.ctx.authenticated_credential and config.anonymous ~= '' then
         -- we're already authenticated, and we're configured for using anonymous,
         -- hence we're in a logical OR between auth methods and we're already done.
         return
@@ -102,20 +102,19 @@ function handle(oidcConfig)
 
     if response == nil then
         response = make_oidc(oidcConfig)
-    end
-
-    if response then
-        if (not oidcConfig.disable_userinfo_header
-                and response.user) then
-            utils.injectUser(response.user, oidcConfig.userinfo_header_name)
-        end
-        if (not oidcConfig.disable_access_token_header
-                and response.access_token) then
-            utils.injectAccessToken(response.access_token, oidcConfig.access_token_header_name, oidcConfig.access_token_as_bearer)
-        end
-        if (not oidcConfig.disable_id_token_header
-                and response.id_token) then
-            utils.injectIDToken(response.id_token, oidcConfig.id_token_header_name)
+        if response then
+            if (not oidcConfig.disable_userinfo_header
+                    and response.user) then
+                utils.injectUser(response.user, oidcConfig.userinfo_header_name)
+            end
+            if (not oidcConfig.disable_access_token_header
+                    and response.access_token) then
+                utils.injectAccessToken(response.access_token, oidcConfig.access_token_header_name, oidcConfig.access_token_as_bearer)
+            end
+            if (not oidcConfig.disable_id_token_header
+                    and response.id_token) then
+                utils.injectIDToken(response.id_token, oidcConfig.id_token_header_name)
+            end
         end
     end
 end
@@ -135,7 +134,7 @@ function make_oidc(oidcConfig)
         res, err = require("resty.openidc").authenticate(oidcConfig)
     end
     if err then
-        if oidcConfig.anonymous then
+        if oidcConfig.anonymous ~= '' then
             -- get anonymous user
             local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
             local consumer, err = kong.cache:get(consumer_cache_key, nil,
@@ -164,7 +163,7 @@ function introspect(oidcConfig)
         if err then
             if oidcConfig.bearer_only == "yes" then
                 --utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
-                if oidcConfig.anonymous then
+                if oidcConfig.anonymous ~= '' then
                     -- get anonymous user
                     local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
                     local consumer, err = kong.cache:get(consumer_cache_key, nil,
