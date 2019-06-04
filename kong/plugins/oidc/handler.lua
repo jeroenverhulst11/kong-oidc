@@ -152,7 +152,7 @@ function make_oidc(oidcConfig)
                 ngx.log(ngx.DEBUG, "Entering recovery page: " .. oidcConfig.recovery_page_path)
                 ngx.redirect(oidcConfig.recovery_page_path)
             end
-            return kong.response.exit(err.status, err.errors or { message = err.message })
+            utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
         end
     end
     return res
