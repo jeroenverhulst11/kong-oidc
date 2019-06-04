@@ -17,13 +17,14 @@ end
 
 function OidcHandler:access(config)
     OidcHandler.super.access(self)
+
+    local oidcConfig = utils.get_options(config, ngx)
+
     if ngx.ctx.authenticated_credential and not oidcConfig.anonymous == nil then
         -- we're already authenticated, and we're configured for using anonymous,
         -- hence we're in a logical OR between auth methods and we're already done.
         return
     end
-
-    local oidcConfig = utils.get_options(config, ngx)
 
     if filter.shouldProcessRequest(oidcConfig) then
         session.configure(config)
