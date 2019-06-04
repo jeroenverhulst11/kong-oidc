@@ -69,6 +69,9 @@ function make_oidc(oidcConfig)
     local res, err
     ngx.log(ngx.WARN, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
     local session, existed = require("resty.session").start(oidcConfig);
+    kong.log.warn("Bearer only:" .. (oidcConfig.bearer_only == "yes"))
+    kong.log.warn("Access token:" .. (utils.has_bearer_access_token()))
+    kong.log.warn("Existing session:" .. (existed))
     if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not existed then
         err = "Bearer only should contain Authorization header or must have a valid session.";
         kong.log.warn(err)
