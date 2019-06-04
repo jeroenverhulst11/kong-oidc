@@ -69,9 +69,9 @@ function make_oidc(oidcConfig)
     local res, err
     ngx.log(ngx.WARN, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
     local session, existed = require("resty.session").start(oidcConfig);
-    kong.log.warn("Bearer only:" .. tostring(oidcConfig.bearer_only))
-    kong.log.warn("Access token:" .. tostring(utils.has_bearer_access_token()))
-    kong.log.warn("Existing session:" .. tostring(existed))
+    kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
+    kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
+    kong.log.debug("Existing session: " .. tostring(existed))
     if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not existed then
         err = "Bearer only should contain Authorization header or must have a valid session.";
         kong.log.warn(err)
@@ -83,7 +83,7 @@ function make_oidc(oidcConfig)
     --utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
       if oidcConfig.anonymous ~= "" then
           -- get anonymous user
-          local consumer_cache_key = kong.db.consumers:cache_key(conf.anonymous)
+          local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
           local consumer, err      = kong.cache:get(consumer_cache_key, nil,
               load_consume,
               oidcConfig.anonymous, true)
