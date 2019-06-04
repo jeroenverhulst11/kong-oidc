@@ -65,7 +65,7 @@ function M.get_options(config, ngx)
         redirect_after_logout_uri = config.redirect_after_logout_uri,
         userinfo_header_name = config.userinfo_header_name,
         id_token_header_name = config.id_token_header_name,
-        access_token_header_name = config.access_token_header_name,
+        access_token_header_name = config.access_token_header_as_bearer,
         access_token_as_bearer = config.access_token_as_bearer == "yes",
         disable_userinfo_header = config.disable_userinfo_header == "yes",
         disable_id_token_header = config.disable_id_token_header == "yes",
