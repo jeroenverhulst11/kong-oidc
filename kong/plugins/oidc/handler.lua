@@ -17,8 +17,7 @@ end
 
 function OidcHandler:access(config)
     OidcHandler.super.access(self)
-    restySession.open()
-    if ngx.ctx.authenticated_credential and config.anonymous ~= "" then
+    if ngx.ctx.authenticated_credential and config.anonymous then
         -- we're already authenticated, and we're configured for using anonymous,
         -- hence we're in a logical OR between auth methods and we're already done.
         return
@@ -124,7 +123,7 @@ end
 function make_oidc(oidcConfig)
     local res, err
     ngx.log(ngx.DEBUG, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
-    local session = require("resty.session").open(oidcConfig);
+    local session = restySession.open(oidcConfig);
     kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
     kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
     kong.log.debug("Existing session: " .. tostring(session.present))
@@ -136,8 +135,7 @@ function make_oidc(oidcConfig)
         res, err = require("resty.openidc").authenticate(oidcConfig)
     end
     if err then
-        --utils.exit(500, err, ngx.HTTP_INTERNAL_SERVER_ERROR)
-        if oidcConfig.anonymous ~= "" then
+        if oidcConfig.anonymous then
             -- get anonymous user
             local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
             local consumer, err = kong.cache:get(consumer_cache_key, nil,
@@ -166,7 +164,7 @@ function introspect(oidcConfig)
         if err then
             if oidcConfig.bearer_only == "yes" then
                 --utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
-                if oidcConfig.anonymous ~= "" then
+                if oidcConfig.anonymous then
                     -- get anonymous user
                     local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
                     local consumer, err = kong.cache:get(consumer_cache_key, nil,
