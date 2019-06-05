@@ -2,19 +2,19 @@ local cjson = require("cjson")
 
 local M = {}
 
-local function getDiscovery(config)
+function getDiscovery(config)
     return (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
 end
 
-local function getBearerOnly(config)
+function M.getBearerOnly(config)
     if config.application_type == "client" then return "no" else return "yes" end
 end
 
-local function getResponseType(config)
+function M.getResponseType(config)
     if config.application_type == "m2m" then return "token" else return "code" end
 end
 
-local function getIntrospectionEndpoint(config)
+function M.getIntrospectionEndpoint(config)
     if config.application_type == "resource" then return (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") else return nil end
 end
 
