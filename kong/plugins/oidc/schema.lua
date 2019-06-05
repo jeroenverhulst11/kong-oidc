@@ -23,6 +23,7 @@ return {
                             one_of = {
                                 "client",
                                 "resource",
+                                "m2m"
                             },
                         },
                     },

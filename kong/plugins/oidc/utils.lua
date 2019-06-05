@@ -45,10 +45,11 @@ end
 
 function M.get_options(config, ngx)
 
-    local bearer_only_var, introspection_endpoint_var, dicovery_var
+    local bearer_only_var, introspection_endpoint_var, dicovery_var, response_type_var
     if config.application_type == "client" then bearer_only_var = "no" else bearer_only_var = "yes" end
+    if config.application_type == "m2m" then response_type_var = "token" else response_type_var = "code" end
     dicovery_var = (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
-    if config.application_type == "client" then introspection_endpoint_var = nil else introspection_endpoint_var = (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") end
+    if config.application_type == "resource" then introspection_endpoint_var = (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") else  introspection_endpoint_var = nil end
 
     return {
         anonymous = config.anonymous,
