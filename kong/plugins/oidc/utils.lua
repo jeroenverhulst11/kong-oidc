@@ -51,6 +51,12 @@ function M.get_options(config, ngx)
     dicovery_var = (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
     if config.application_type == "resource" then introspection_endpoint_var = (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") else  introspection_endpoint_var = nil end
 
+    ngx.log(ngx.WARN, "config.application_type " .. config.application_type)
+    ngx.log(ngx.WARN, "bearer_only_var " .. bearer_only_var)
+    ngx.log(ngx.WARN, "response_type_var " .. response_type_var)
+    ngx.log(ngx.WARN, "dicovery_var " .. dicovery_var)
+    ngx.log(ngx.WARN, "introspection_endpoint_var " .. introspection_endpoint_var)
+
     return {
         anonymous = config.anonymous,
         client_id = config.client_id,
