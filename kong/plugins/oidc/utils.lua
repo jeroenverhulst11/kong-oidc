@@ -2,7 +2,7 @@ local cjson = require("cjson")
 
 local M = {}
 
-function getDiscovery(config)
+function M.getDiscovery(config)
     return (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
 end
 
