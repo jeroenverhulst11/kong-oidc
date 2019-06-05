@@ -3,14 +3,17 @@ local cjson = require("cjson")
 local M = {}
 
 function M.getDiscovery(config)
+    ngx.log(ngx.WARN, config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
     return (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
 end
 
 function M.getBearerOnly(config)
+    ngx.log(ngx.WARN, config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
     if config.application_type == "client" then return "no" else return "yes" end
 end
 
 function M.getResponseType(config)
+    ngx.log(ngx.WARN, "application_type " .. config.application_type)
     if config.application_type == "m2m" then return "token" else return "code" end
 end
 
