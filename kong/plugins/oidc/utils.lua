@@ -2,6 +2,22 @@ local cjson = require("cjson")
 
 local M = {}
 
+local function getDiscovery(config)
+    return (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
+end
+
+local function getBearerOnly(config)
+    if config.application_type == "client" then return "no" else return "yes" end
+end
+
+local function getResponseType(config)
+    if config.application_type == "m2m" then return "token" else return "code" end
+end
+
+local function getIntrospectionEndpoint(config)
+    if config.application_type == "resource" then return (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") else return nil end
+end
+
 local function parseFilters(csvFilters)
     local filters = {}
     if (not (csvFilters == nil)) and (not (csvFilters == ",")) then
@@ -44,32 +60,19 @@ function M.get_redirect_uri(ngx)
 end
 
 function M.get_options(config, ngx)
-
-    local bearer_only_var, introspection_endpoint_var, dicovery_var, response_type_var
-    if config.application_type == "client" then bearer_only_var = "no" else bearer_only_var = "yes" end
-    if config.application_type == "m2m" then response_type_var = "token" else response_type_var = "code" end
-    dicovery_var = (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
-    if config.application_type == "resource" then introspection_endpoint_var = (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") else  introspection_endpoint_var = nil end
-
-    ngx.log(ngx.WARN, "config.application_type " .. config.application_type)
-    ngx.log(ngx.WARN, "bearer_only_var " .. bearer_only_var)
-    ngx.log(ngx.WARN, "response_type_var " .. response_type_var)
-    ngx.log(ngx.WARN, "dicovery_var " .. dicovery_var)
-    ngx.log(ngx.WARN, "introspection_endpoint_var " .. introspection_endpoint_var)
-
     return {
         anonymous = config.anonymous,
         client_id = config.client_id,
         client_secret = config.client_secret,
-        discovery = dicovery_var,
-        introspection_endpoint = introspection_endpoint_var,
+        discovery = getDiscovery(config),
+        introspection_endpoint = getIntrospectionEndpoint(config),
         timeout = nil,
         introspection_endpoint_auth_method = nil,
-        bearer_only = bearer_only_var,
+        bearer_only = getBearerOnly(config),
         realm = config.realm,
         redirect_uri = M.get_redirect_uri(ngx),
         scope = "openid",
-        response_type = response_type_var,
+        response_type = getResponseType(config),
         ssl_verify = "no",
         token_endpoint_auth_method = "client_secret_post",
         recovery_page_path = nil,
