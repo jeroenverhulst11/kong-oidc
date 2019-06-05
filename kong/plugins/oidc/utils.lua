@@ -14,7 +14,7 @@ end
 
 function M.getResponseType(config)
     ngx.log(ngx.WARN, "application_type " .. config.application_type)
-    if config.application_type == "m2m" then return "token" else return "code" end
+    if (config.application_type == "m2m") then return "token" else return "code" end
 end
 
 function M.getIntrospectionEndpoint(config)
