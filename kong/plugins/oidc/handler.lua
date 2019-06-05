@@ -126,7 +126,7 @@ function make_oidc(oidcConfig)
     kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
     kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
     kong.log.debug("Existing session: " .. tostring(session.present))
-    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present then
+    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present and not oidcConfig.application_type == "m2m" then
         err = "No Bearer Authorization header or valid session found.";
         kong.log.warn(err)
     end
