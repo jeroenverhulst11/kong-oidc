@@ -126,12 +126,12 @@ function make_oidc(oidcConfig)
     kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
     kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
     kong.log.debug("Existing session: " .. tostring(session.present))
-    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present and not oidcConfig.application_type == "m2m" then
+    if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present and not oidcConfig.response_type == "token" then
         err = "No Bearer Authorization header or valid session found.";
         kong.log.warn(err)
     end
     if not err then
-        if not oidcConfig.application_type == "m2m" then
+        if not oidcConfig.response_type == "token" then
             res, err = require("resty.openidc").authenticate(oidcConfig)
         else
             kong.log.warn("Trying to get access token for m2m configuration")
