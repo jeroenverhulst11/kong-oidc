@@ -63,7 +63,7 @@ function M.get_options(config, ngx)
         realm = config.realm,
         redirect_uri = M.get_redirect_uri(ngx),
         scope = "openid",
-        response_type = "code",
+        response_type = response_type_var,
         ssl_verify = "no",
         token_endpoint_auth_method = "client_secret_post",
         recovery_page_path = nil,
