@@ -134,7 +134,14 @@ function make_oidc(oidcConfig)
         if not oidcConfig.application_type == "m2m" then
             res, err = require("resty.openidc").authenticate(oidcConfig)
         else
-            res.access_token, err = require("resty.openidc").access_token(oidcConfig)
+            local access_token
+            access_token, err = require("resty.openidc").access_token(oidcConfig)
+            if not err then
+                res = {
+                    access_token = access_token
+                }
+                return res
+            end
         end
     end
     if err then
