@@ -131,7 +131,11 @@ function make_oidc(oidcConfig)
         kong.log.warn(err)
     end
     if not err then
-        res, err = require("resty.openidc").authenticate(oidcConfig)
+        if not oidcConfig.application_type == "m2m" then
+            res, err = require("resty.openidc").authenticate(oidcConfig)
+        else
+            res.access_token, err = require("resty.openidc").access_token(oidcConfig)
+        end
     end
     if err then
         if not (oidcConfig.anonymous == nil or oidcConfig.anonymous == "") then
