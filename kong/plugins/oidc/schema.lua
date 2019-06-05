@@ -41,7 +41,6 @@ return {
                     {
                         client_id = {
                             type = "string",
-                            uuid = true,
                             required = true,
                         },
                     },
