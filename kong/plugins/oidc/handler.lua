@@ -4,8 +4,6 @@ local utils = require("kong.plugins.oidc.utils")
 local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
 local restySession = require("resty.session")
-
-local singletons = require "kong.singletons"
 local constants = require "kong.constants"
 
 OidcHandler.PRIORITY = 1000
@@ -31,10 +29,10 @@ function OidcHandler:access(config)
         handle(oidcConfig)
 
     else
-        ngx.log(ngx.DEBUG, "OidcHandler ignoring request, path: " .. ngx.var.request_uri)
+        kong.log.debug("OidcHandler ignoring request, path: " .. ngx.var.request_uri)
     end
 
-    ngx.log(ngx.DEBUG, "OidcHandler done")
+    kong.log.debug("OidcHandler done")
 end
 
 
@@ -122,14 +120,14 @@ end
 
 function make_oidc(oidcConfig)
     local res, err
-    ngx.log(ngx.DEBUG, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
+    kong.log.debug("OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
+
     local session = restySession.open(oidcConfig);
     kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
     kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
     kong.log.debug("Existing session: " .. tostring(session.present))
-    kong.log.warn("Anonymous: " .. tostring(oidcConfig.anonymous))
     if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present then
-        err = "Bearer only should contain Authorization header or must have a valid session.";
+        err = "No Bearer Authorization header or valid session found.";
         kong.log.warn(err)
     end
     if not err then
@@ -149,7 +147,7 @@ function make_oidc(oidcConfig)
             set_consumer(consumer, nil, nil)
         else
             if oidcConfig.recovery_page_path then
-                ngx.log(ngx.DEBUG, "Entering recovery page: " .. oidcConfig.recovery_page_path)
+                kong.log.debug("Entering recovery page: " .. oidcConfig.recovery_page_path)
                 ngx.redirect(oidcConfig.recovery_page_path)
             end
             utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
@@ -175,7 +173,7 @@ function introspect(oidcConfig)
                     set_consumer(consumer, nil, nil)
                 else
                     if oidcConfig.recovery_page_path then
-                        ngx.log(ngx.DEBUG, "Entering recovery page: " .. oidcConfig.recovery_page_path)
+                        kong.log.debug("Entering recovery page: " .. oidcConfig.recovery_page_path)
                         ngx.redirect(oidcConfig.recovery_page_path)
                     end
                     ngx.header["WWW-Authenticate"] = 'Bearer realm="' .. oidcConfig.realm .. '",error="' .. err .. '"'
@@ -184,10 +182,10 @@ function introspect(oidcConfig)
             end
             return nil
         end
-        ngx.log(ngx.DEBUG, "OidcHandler introspect succeeded, requested path: " .. ngx.var.request_uri)
+        kong.log.debug("OidcHandler introspect succeeded, requested path: " .. ngx.var.request_uri)
         return res
     end
-    ngx.log(ngx.WARN, "Ignoring introspect: no bearer token and introspect url set.")
+    kong.log.debug("Ignoring introspect: no bearer token and introspect url set.")
 
     return nil
 end

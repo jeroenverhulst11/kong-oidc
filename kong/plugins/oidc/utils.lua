@@ -44,32 +44,38 @@ function M.get_redirect_uri(ngx)
 end
 
 function M.get_options(config, ngx)
+
+    local bearer_only_var, introspection_endpoint_var, dicovery_var
+    if config.application_type == "client" then bearer_only_var = "no" else bearer_only_var = "yes" end
+    dicovery_var = (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
+    if config.application_type == "client" then introspection_endpoint_var = nil else introspection_endpoint_var = (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") end
+
     return {
-        anonymous = config.anonymous or "",
+        anonymous = config.anonymous,
         client_id = config.client_id,
         client_secret = config.client_secret,
-        discovery = config.discovery,
-        introspection_endpoint = config.introspection_endpoint,
-        timeout = config.timeout,
-        introspection_endpoint_auth_method = config.introspection_endpoint_auth_method,
-        bearer_only = config.bearer_only,
+        discovery = dicovery_var,
+        introspection_endpoint = introspection_endpoint_var,
+        timeout = nil,
+        introspection_endpoint_auth_method = nil,
+        bearer_only = bearer_only_var,
         realm = config.realm,
-        redirect_uri = config.redirect_uri or M.get_redirect_uri(ngx),
-        scope = config.scope,
-        response_type = config.response_type,
-        ssl_verify = config.ssl_verify,
-        token_endpoint_auth_method = config.token_endpoint_auth_method,
-        recovery_page_path = config.recovery_page_path,
-        filters = parseFilters((config.filters or "") .. "," .. (config.ignore_auth_filters or "")),
-        logout_path = config.logout_path,
-        redirect_after_logout_uri = config.redirect_after_logout_uri,
-        userinfo_header_name = config.userinfo_header_name,
-        id_token_header_name = config.id_token_header_name,
-        access_token_header_name = config.access_token_header_as_bearer,
-        access_token_as_bearer = config.access_token_as_bearer == "yes",
-        disable_userinfo_header = config.disable_userinfo_header == "yes",
-        disable_id_token_header = config.disable_id_token_header == "yes",
-        disable_access_token_header = config.disable_access_token_header == "yes"
+        redirect_uri = M.get_redirect_uri(ngx),
+        scope = "openid",
+        response_type = "code",
+        ssl_verify = "no",
+        token_endpoint_auth_method = "client_secret_post",
+        recovery_page_path = nil,
+        filters = parseFilters(","),
+        logout_path = "/logout",
+        redirect_after_logout_uri = "/",
+        userinfo_header_name = "X-USERINFO",
+        id_token_header_name = "X-ID-Token",
+        access_token_header_name = "Authorization",
+        access_token_as_bearer = true,
+        disable_userinfo_header = false,
+        disable_id_token_header = false,
+        disable_access_token_header = false
     }
 end
 
