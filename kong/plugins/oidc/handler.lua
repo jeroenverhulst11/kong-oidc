@@ -134,9 +134,11 @@ function make_oidc(oidcConfig)
         if not oidcConfig.application_type == "m2m" then
             res, err = require("resty.openidc").authenticate(oidcConfig)
         else
+            kong.log.warn("Trying to get access token for m2m configuration")
             local access_token
             access_token, err = require("resty.openidc").access_token(oidcConfig)
             if not err then
+                kong.log.warn("Access token for m2m configuration: " .. access_token)
                 res = {
                     access_token = access_token
                 }
