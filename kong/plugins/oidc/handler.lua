@@ -175,7 +175,6 @@ function introspect(oidcConfig)
                         kong.log.debug("Entering recovery page: " .. oidcConfig.recovery_page_path)
                         ngx.redirect(oidcConfig.recovery_page_path)
                     end
-                    ngx.header["WWW-Authenticate"] = 'Bearer realm="' .. oidcConfig.realm .. '",error="' .. err .. '"'
                     utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
                 end
             end
