@@ -22,19 +22,12 @@ return {
                             required = true,
                             one_of = {
                                 "client",
-                                "resource",
-                                "m2m"
+                                "resource"
                             },
                         },
                     },
                     {
                         server = {
-                            type = "string",
-                            required = true,
-                        },
-                    },
-                    {
-                        realm = {
                             type = "string",
                             required = true,
                         },

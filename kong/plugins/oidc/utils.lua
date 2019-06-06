@@ -3,22 +3,15 @@ local cjson = require("cjson")
 local M = {}
 
 function M.getDiscovery(config)
-    ngx.log(ngx.WARN, config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
-    return (config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
+    return (config.server .. "/.well-known/openid-configuration")
 end
 
 function M.getBearerOnly(config)
-    ngx.log(ngx.WARN, config.server .. "/auth/realms/" .. config.realm .. "/.well-known/openid-configuration")
     if config.application_type == "client" then return "no" else return "yes" end
 end
 
-function M.getResponseType(config)
-    ngx.log(ngx.WARN, "application_type " .. config.application_type)
-    if (config.application_type == "m2m") then return "token" else return "code" end
-end
-
 function M.getIntrospectionEndpoint(config)
-    if config.application_type == "resource" then return (config.server .. "/auth/realms/" .. config.realm .. "/protocol/openid-connect/token/introspect") else return nil end
+    if config.application_type == "resource" then return (config.server .. "/protocol/openid-connect/token/introspect") else return nil end
 end
 
 local function parseFilters(csvFilters)
@@ -75,7 +68,7 @@ function M.get_options(config, ngx)
         realm = config.realm,
         redirect_uri = M.get_redirect_uri(ngx),
         scope = "openid",
-        response_type = M.getResponseType(config),
+        response_type = "code",
         ssl_verify = "no",
         token_endpoint_auth_method = "client_secret_post",
         recovery_page_path = nil,
