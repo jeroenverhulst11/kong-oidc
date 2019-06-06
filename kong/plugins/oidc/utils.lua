@@ -97,13 +97,13 @@ function M.injectAccessToken(accessToken, headerName, bearerToken)
     if (bearerToken) then
         token = formatAsBearerToken(token)
     end
-    ngx.req.set_header(headerName, token)
+    kong.request.set_header(headerName, token)
 end
 
 function M.injectIDToken(idToken, headerName)
     ngx.log(ngx.DEBUG, "Injecting " .. headerName)
     local tokenStr = cjson.encode(idToken)
-    ngx.req.set_header(headerName, ngx.encode_base64(tokenStr))
+    kong.request.set_header(headerName, ngx.encode_base64(tokenStr))
 end
 
 function M.injectUser(user, headerName)
@@ -113,7 +113,7 @@ function M.injectUser(user, headerName)
     tmp_user.username = user.preferred_username
     ngx.ctx.authenticated_credential = tmp_user
     local userinfo = cjson.encode(user)
-    ngx.req.set_header(headerName, ngx.encode_base64(userinfo))
+    kong.request.set_header(headerName, ngx.encode_base64(userinfo))
 end
 
 function M.has_bearer_access_token()

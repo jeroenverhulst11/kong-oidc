@@ -6,7 +6,7 @@ local session = require("kong.plugins.oidc.session")
 local restySession = require("resty.session")
 local constants = require "kong.constants"
 
-OidcHandler.PRIORITY = 1000
+OidcHandler.PRIORITY = 1006
 
 function OidcHandler:new()
     OidcHandler.super.new(self, "oidc")
