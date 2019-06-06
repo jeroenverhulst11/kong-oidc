@@ -89,26 +89,6 @@ local function load_consumer(consumer_id, anonymous)
     return result
 end
 
-local function handle_unauthenticated(oidcConfig)
-    if not (oidcConfig.anonymous == nil or oidcConfig.anonymous == "") then
-        local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
-        local consumer, err = kong.cache:get(consumer_cache_key, nil,
-            load_consumer,
-            oidcConfig.anonymous, true)
-        if err then
-            kong.log.err(err)
-            return kong.response.exit(500, { message = "An unexpected error occurred" })
-        end
-        set_consumer(consumer, nil, nil)
-    else
-        if oidcConfig.recovery_page_path then
-            kong.log.debug("Entering recovery page: " .. oidcConfig.recovery_page_path)
-            ngx.redirect(oidcConfig.recovery_page_path)
-        end
-        utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
-    end
-end
-
 function handle(oidcConfig)
     local response
     if oidcConfig.introspection_endpoint then
@@ -121,13 +101,16 @@ function handle(oidcConfig)
     if response == nil then
         response = make_oidc(oidcConfig)
         if response then
-            if (not oidcConfig.disable_userinfo_header and response.user) then
+            if (not oidcConfig.disable_userinfo_header
+                    and response.user) then
                 utils.injectUser(response.user, oidcConfig.userinfo_header_name)
             end
-            if (not oidcConfig.disable_access_token_header and response.access_token) then
+            if (not oidcConfig.disable_access_token_header
+                    and response.access_token) then
                 utils.injectAccessToken(response.access_token, oidcConfig.access_token_header_name, oidcConfig.access_token_as_bearer)
             end
-            if (not oidcConfig.disable_id_token_header and response.id_token) then
+            if (not oidcConfig.disable_id_token_header
+                    and response.id_token) then
                 utils.injectIDToken(response.id_token, oidcConfig.id_token_header_name)
             end
         end
@@ -139,6 +122,9 @@ function make_oidc(oidcConfig)
     kong.log.debug("OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
 
     local session = restySession.open(oidcConfig);
+    kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
+    kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
+    kong.log.debug("Existing session: " .. tostring(session.present))
     if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present then
         err = "No Bearer Authorization header or valid session found.";
         kong.log.warn(err)
@@ -147,7 +133,23 @@ function make_oidc(oidcConfig)
         res, err = require("resty.openidc").authenticate(oidcConfig)
     end
     if err then
-        handle_unauthenticated(oidcConfig)
+        if not (oidcConfig.anonymous == nil or oidcConfig.anonymous == "") then
+            local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
+            local consumer, err = kong.cache:get(consumer_cache_key, nil,
+                load_consumer,
+                oidcConfig.anonymous, true)
+            if err then
+                kong.log.err(err)
+                return kong.response.exit(500, { message = "An unexpected error occurred" })
+            end
+            set_consumer(consumer, nil, nil)
+        else
+            if oidcConfig.recovery_page_path then
+                kong.log.debug("Entering recovery page: " .. oidcConfig.recovery_page_path)
+                ngx.redirect(oidcConfig.recovery_page_path)
+            end
+            utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
+        end
     end
     return res
 end
@@ -157,7 +159,23 @@ function introspect(oidcConfig)
         local res, err = require("resty.openidc").introspect(oidcConfig)
         if err then
             if oidcConfig.bearer_only == "yes" then
-                handle_unauthenticated(oidcConfig)
+                if not (oidcConfig.anonymous == nil or oidcConfig.anonymous == "") then
+                    local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
+                    local consumer, err = kong.cache:get(consumer_cache_key, nil,
+                        load_consumer,
+                        oidcConfig.anonymous, true)
+                    if err then
+                        kong.log.err(err)
+                        return kong.response.exit(500, { message = "An unexpected error occurred" })
+                    end
+                    set_consumer(consumer, nil, nil)
+                else
+                    if oidcConfig.recovery_page_path then
+                        kong.log.debug("Entering recovery page: " .. oidcConfig.recovery_page_path)
+                        ngx.redirect(oidcConfig.recovery_page_path)
+                    end
+                    utils.exit(ngx.HTTP_UNAUTHORIZED, err, ngx.HTTP_UNAUTHORIZED)
+                end
             end
             return nil
         end
