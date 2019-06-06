@@ -34,8 +34,6 @@ function OidcHandler:access(config)
     kong.log.debug("OidcHandler done")
 end
 
-
-
 local function set_consumer(consumer, credential, token)
     local set_header = kong.service.request.set_header
     local clear_header = kong.service.request.clear_header
@@ -142,9 +140,6 @@ function make_oidc(oidcConfig)
     kong.log.debug("OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
 
     local session = restySession.open(oidcConfig);
-    kong.log.debug("Bearer only: " .. tostring(oidcConfig.bearer_only))
-    kong.log.debug("Access token: " .. tostring(utils.has_bearer_access_token()))
-    kong.log.debug("Existing session: " .. tostring(session.present))
     if oidcConfig.bearer_only == "yes" and not utils.has_bearer_access_token() and not session.present then
         err = "No Bearer Authorization header or valid session found.";
         kong.log.warn(err)
