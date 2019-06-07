@@ -1,6 +1,5 @@
 local function validate_client_roles(oidcConfig, jwt_claims)
-    local allowed_client_roles = oidcConfig.client_roles
-    local curr_allowed_client = oidcConfig.client_id
+    allowed_client_roles = oidcConfig.client_roles
     if allowed_client_roles == nil or table.getn(allowed_client_roles) == 0 then
         return true
     end
@@ -9,16 +8,15 @@ local function validate_client_roles(oidcConfig, jwt_claims)
         return nil, "Missing required resource_access claim"
     end
 
-    local roles = {}
+    roles = {}
 
     for _, curr_allowed_role in pairs(allowed_client_roles) do
         for claim_client, claim_client_roles in pairs(jwt_claims.resource_access) do
-            if curr_allowed_client == claim_client then
+            if oidcConfig.client_id == claim_client then
                 for _, curr_claim_client_roles in pairs(claim_client_roles) do
                     for _, curr_claim_client_role in pairs(curr_claim_client_roles) do
                         if curr_claim_client_role == curr_allowed_role then
                             table.insert(roles, curr_claim_client_role)
-                            return true
                         end
                     end
                 end
