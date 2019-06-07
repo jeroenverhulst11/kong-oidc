@@ -82,7 +82,8 @@ function M.get_options(config, ngx)
         access_token_as_bearer = true,
         disable_userinfo_header = false,
         disable_id_token_header = false,
-        disable_access_token_header = false
+        disable_access_token_header = false,
+        iss_key_grace_period = 10
     }
 end
 

@@ -34,5 +34,6 @@ build = {
         ["kong.plugins.oidc.utils"] = "kong/plugins/oidc/utils.lua",
         ["spec.plugins.oidc.access_spec"] = "spec/plugins/oidc/access_spec.lua",
         ["kong.plugins.oidc.validators.roles"] = "kong/plugins/oidc/validators/roles.lua",
+        ["kong.plugins.oidc.keycloak_keys"] = "kong/plugins/oidc/keycloak_keys.lua",
     }
 }

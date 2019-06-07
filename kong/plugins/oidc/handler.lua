@@ -7,6 +7,7 @@ local jwt_decoder = require "kong.plugins.jwt.jwt_parser"
 local restySession = require("resty.session")
 local constants = require "kong.constants"
 local validate_client_roles = require("kong.plugins.oidc.validators.roles").validate_client_roles
+local keycloak_keys = require("kong.plugins.oidc.keycloak_keys")
 local re_gmatch = ngx.re.gmatch
 
 OidcHandler.PRIORITY = 1006
@@ -107,6 +108,67 @@ local function retrieve_access_token(oidcConfig)
     end
 end
 
+local function get_keys(discovery)
+    kong.log.debug('Getting public keys from keycloak')
+    keys, err = keycloak_keys.get_issuer_keys(discovery)
+    if err then
+        return nil, err
+    end
+
+    decoded_keys = {}
+    for i, key in ipairs(keys) do
+        decoded_keys[i] = jwt_decoder:base64_decode(key)
+    end
+
+    kong.log.debug('Number of keys retrieved: ' .. table.getn(decoded_keys))
+    return {
+        keys = decoded_keys,
+        updated_at = socket.gettime(),
+    }
+end
+
+local function validate_signature(oidcConf, jwt, second_call)
+    local issuer_cache_key = 'issuer_keys_' .. jwt.claims.iss
+
+    discovery = keycloak_keys.get_wellknown_endpoint(oidcConf.discovery, jwt.claims.iss)
+    -- Retrieve public keys
+    local public_keys, err = kong.cache:get(issuer_cache_key, nil, get_keys, discovery, true)
+
+    if not public_keys then
+        if err then
+            kong.log.err(err)
+        end
+        return kong.response.exit(403, { message = "Unable to get public key for issuer" })
+    end
+
+    if jwt.header.alg ~= ("RS256" or "HS256") then
+        return false, {status = 403, message = "Invalid algorithm"}
+    end
+
+    local ok_claims, errors = jwt:verify_registered_claims({"exp", "nbf"})
+    if not ok_claims then
+        return false, { status = 401, message = "Token claims invalid: " .. table_to_string(errors) }
+    end
+
+    -- Verify signatures
+    for _, k in ipairs(public_keys.keys) do
+        if jwt:verify_signature(k) then
+            kong.log.debug('JWT signature verified')
+            return nil
+        end
+    end
+
+    -- We could not validate signature, try to get a new keyset?
+    since_last_update = socket.gettime() - public_keys.updated_at
+    if not second_call and since_last_update > oidcConf.iss_key_grace_period then
+        kong.log.debug('Could not validate signature. Keys updated last ' .. since_last_update .. ' seconds ago')
+        kong.cache:invalidate_local(issuer_cache_key)
+        return validate_signature(oidcConf, jwt, true)
+    end
+
+    return kong.response.exit(401, { message = "Invalid token signature" })
+end
+
 function verify_access_token(oidcConfig)
     local token, err = retrieve_access_token(oidcConfig)
     if err then
@@ -118,6 +180,11 @@ function verify_access_token(oidcConfig)
     local jwt, err = jwt_decoder:new(token)
     if err then
         return false, "Bad token; " .. tostring(err)
+    end
+
+    err = validate_signature(oidcConfig, jwt)
+    if err ~= nil then
+        return false, err
     end
 
     if oidcConfig.client_roles and not validate_client_roles(oidcConfig.client_roles, jwt.claims) then
