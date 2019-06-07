@@ -53,6 +53,8 @@ local function validate_client_roles(oidcConfig, jwt_claims)
         return nil, "Missing required resource_access claim"
     end
 
+    local roles = {}
+
     for _, curr_allowed_role in pairs(allowed_client_roles) do
         for _, curr_claim_client_role in pairs(claim_roles) do
             if curr_claim_client_role == curr_allowed_role then
