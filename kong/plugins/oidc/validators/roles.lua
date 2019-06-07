@@ -30,11 +30,13 @@ end
 
 local function validate_client_roles(oidcConfig, jwt_claims)
     local claim_roles = {}
-    for claim_client, claim_client_roles in pairs(jwt_claims.resource_access) do
-        if oidcConfig.client_id == claim_client then
-            for _, curr_claim_client_roles in pairs(claim_client_roles) do
-                for _, curr_claim_client_role in pairs(curr_claim_client_roles) do
-                    table.insert(claim_roles, curr_claim_client_role)
+    if jwt_claims and jwt_claims.resource_access then
+        for claim_client, claim_client_roles in pairs(jwt_claims.resource_access) do
+            if oidcConfig.client_id == claim_client then
+                for _, curr_claim_client_roles in pairs(claim_client_roles) do
+                    for _, curr_claim_client_role in pairs(curr_claim_client_roles) do
+                        table.insert(claim_roles, curr_claim_client_role)
+                    end
                 end
             end
         end
