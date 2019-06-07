@@ -7,6 +7,7 @@ local jwt_decoder = require "kong.plugins.jwt.jwt_parser"
 local restySession = require("resty.session")
 local constants = require "kong.constants"
 local validate_client_roles = require("kong.plugins.oidc.validators.roles").validate_client_roles
+local re_gmatch = ngx.re.gmatch
 
 OidcHandler.PRIORITY = 1006
 
