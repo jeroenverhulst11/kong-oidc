@@ -69,7 +69,7 @@ local function load_consumer(consumer_id, anonymous)
 end
 
 local function handle_unauthenticated(oidcConfig, err)
-    if oidcConfig.anonymous ~= "" then
+    if not (oidcConfig.anonymous == nil or oidcConfig.anonymous == "") then
         local consumer_cache_key = kong.db.consumers:cache_key(oidcConfig.anonymous)
         local consumer, err = kong.cache:get(consumer_cache_key, nil,
             load_consumer,
@@ -193,7 +193,7 @@ function OidcHandler:access(config)
 
     local oidcConfig = utils.get_options(config, ngx)
 
-    if (ngx.ctx.authenticated_credential and oidcConfig.anonymous ~= "") then
+    if (ngx.ctx.authenticated_credential and not (oidcConfig.anonymous == nil or oidcConfig.anonymous == "")) then
         -- we're already authenticated, and we're configured for using anonymous,
         -- hence we're in a logical OR between auth methods and we're already done.
         return
