@@ -123,6 +123,8 @@ function verify_access_token(oidcConfig)
     if oidcConfig.client_roles and not validate_client_roles(oidcConfig.client_roles, jwt.claims) then
         return false, "Access token does not have the required scope/role"
     end
+
+    return true
 end
 
 function handle(oidcConfig)
