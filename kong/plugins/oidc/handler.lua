@@ -3,35 +3,15 @@ local OidcHandler = BasePlugin:extend()
 local utils = require("kong.plugins.oidc.utils")
 local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
+local jwt_decoder = require "kong.plugins.jwt.jwt_parser"
 local restySession = require("resty.session")
 local constants = require "kong.constants"
+local validate_client_roles = require("kong.plugins.oidc.validators.roles").validate_client_roles
 
 OidcHandler.PRIORITY = 1006
 
 function OidcHandler:new()
     OidcHandler.super.new(self, "oidc")
-end
-
-function OidcHandler:access(config)
-    OidcHandler.super.access(self)
-
-    local oidcConfig = utils.get_options(config, ngx)
-
-    if (ngx.ctx.authenticated_credential and oidcConfig.anonymous ~= "") then
-        -- we're already authenticated, and we're configured for using anonymous,
-        -- hence we're in a logical OR between auth methods and we're already done.
-        return
-    end
-
-    if filter.shouldProcessRequest(oidcConfig) then
-        session.configure(config)
-        handle(oidcConfig)
-
-    else
-        kong.log.debug("OidcHandler ignoring request, path: " .. ngx.var.request_uri)
-    end
-
-    kong.log.debug("OidcHandler done")
 end
 
 local function set_consumer(consumer, credential, token)
@@ -107,6 +87,43 @@ local function handle_unauthenticated(oidcConfig, err)
     end
 end
 
+local function retrieve_access_token(oidcConfig)
+    local authorization_header = kong.request.get_header(oidcConfig.access_token_header_name)
+    if authorization_header then
+        local iterator, iter_err = re_gmatch(authorization_header, "\\s*[Bb]earer\\s+(.+)")
+        if not iterator then
+            return nil, iter_err
+        end
+
+        local m, err = iterator()
+        if err then
+            return nil, err
+        end
+
+        if m and #m > 0 then
+            return m[1]
+        end
+    end
+end
+
+function verify_access_token(oidcConfig)
+    local token, err = retrieve_access_token(oidcConfig)
+    if err then
+        kong.log.err(err)
+        return kong.response.exit(500, { message = "An unexpected error occurred" })
+    end
+
+    -- Decode token
+    local jwt, err = jwt_decoder:new(token)
+    if err then
+        return false, { status = 401, message = "Bad token; " .. tostring(err) }
+    end
+
+    if conf.client_roles and not validate_client_roles(conf.client_roles, jwt.claims) then
+        return false, { status = 403, message = "Access token does not have the required scope/role" }
+    end
+end
+
 function handle(oidcConfig)
     local response
     if oidcConfig.introspection_endpoint then
@@ -168,6 +185,34 @@ function introspect(oidcConfig)
     kong.log.debug("Ignoring introspect: no bearer token and introspect url set.")
 
     return nil
+end
+
+function OidcHandler:access(config)
+    OidcHandler.super.access(self)
+
+    local oidcConfig = utils.get_options(config, ngx)
+
+    if (ngx.ctx.authenticated_credential and oidcConfig.anonymous ~= "") then
+        -- we're already authenticated, and we're configured for using anonymous,
+        -- hence we're in a logical OR between auth methods and we're already done.
+        return
+    end
+
+    if filter.shouldProcessRequest(oidcConfig) then
+        session.configure(config)
+        handle(oidcConfig)
+
+        if(config.application_type == "resource") then
+            local ok, err = verify_access_token(oidcConfig);
+            if not ok then
+                handle_unauthenticated(oidcConfig, err)
+            end
+        end
+    else
+        kong.log.debug("OidcHandler ignoring request, path: " .. ngx.var.request_uri)
+    end
+
+    kong.log.debug("OidcHandler done")
 end
 
 return OidcHandler

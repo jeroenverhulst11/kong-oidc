@@ -44,6 +44,14 @@ return {
                             required = true,
                         },
                     },
+                    {   client_roles = {
+                            type = "set",
+                            elements = {
+                                type = "string"
+                            },
+                            default = nil
+                        },
+                    },
                     {
                         anonymous = {
                             type = "string",
