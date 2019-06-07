@@ -1,6 +1,31 @@
+local function table_to_string(tbl)
+    local result = ""
+    for k, v in pairs(tbl) do
+        -- Check the key type (ignore any numerical keys - assume its an array)
+        if type(k) == "string" then
+            result = result.."[\""..k.."\"]".."="
+        end
+
+        -- Check the value type
+        if type(v) == "table" then
+            result = result..table_to_string(v)
+        elseif type(v) == "boolean" then
+            result = result..tostring(v)
+        else
+            result = result..v
+        end
+        result = result..","
+    end
+    -- Remove leading commas from the result
+    if result ~= "" then
+        result = result:sub(1, result:len()-1)
+    end
+    return result
+end
+
+
 local function validate_client_roles(oidcConfig, jwt_claims)
     allowed_client_roles = oidcConfig.client_roles
-    kong.log.warn("allowed_client_roles " .. tostring(allowed_client_roles))
     if allowed_client_roles == nil or table.getn(allowed_client_roles) == 0 then
         return true
     end
@@ -24,14 +49,12 @@ local function validate_client_roles(oidcConfig, jwt_claims)
             end
         end
     end
-    kong.log.warn("roles " .. tostring(roles))
-    kong.log.warn("client_id " .. tostring(oidcConfig.client_id))
 
     if table.getn(roles) == 0 then
         return nil, "Missing required role"
     else
         local set_header = kong.service.request.set_header
-        set_header("X-Client-Roles", roles)
+        set_header("X-Client-Roles", table_to_string(roles))
         return true
     end
 end
