@@ -117,11 +117,11 @@ function verify_access_token(oidcConfig)
     -- Decode token
     local jwt, err = jwt_decoder:new(token)
     if err then
-        return "Bad token; " .. tostring(err)
+        return false, "Bad token; " .. tostring(err)
     end
 
     if oidcConfig.client_roles and not validate_client_roles(oidcConfig.client_roles, jwt.claims) then
-        return "Access token does not have the required scope/role"
+        return false, "Access token does not have the required scope/role"
     end
 end
 
