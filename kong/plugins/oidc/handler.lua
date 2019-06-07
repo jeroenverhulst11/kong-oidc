@@ -120,7 +120,7 @@ function verify_access_token(oidcConfig)
         return false, { status = 401, message = "Bad token; " .. tostring(err) }
     end
 
-    if conf.client_roles and not validate_client_roles(conf.client_roles, jwt.claims) then
+    if conf.client_roles and not validate_client_roles(oidcConfig.client_roles, jwt.claims) then
         return false, { status = 403, message = "Access token does not have the required scope/role" }
     end
 end

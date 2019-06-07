@@ -60,6 +60,7 @@ function M.get_options(config, ngx)
         anonymous = config.anonymous,
         client_id = config.client_id,
         client_secret = config.client_secret,
+        client_roles = config.client_roles,
         discovery = M.getDiscovery(config),
         introspection_endpoint = M.getIntrospectionEndpoint(config),
         timeout = nil,
