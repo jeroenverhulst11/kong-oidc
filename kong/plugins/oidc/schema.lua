@@ -44,7 +44,7 @@ return {
                             required = true,
                         },
                     },
-                    {   client_roles = {
+                    {   roles_to_check_if_resource = {
                             type = "set",
                             elements = {
                                 type = "string"
