@@ -12,7 +12,11 @@ local function table_to_string(tbl)
         elseif type(v) == "boolean" then
             result = result..tostring(v)
         else
-            result = result..v
+            if result ~= "" then
+                result = result .. " " .. v
+            else
+                result = result .. v
+            end
         end
         result = result..","
     end
