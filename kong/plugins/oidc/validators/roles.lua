@@ -1,5 +1,6 @@
 local function validate_client_roles(oidcConfig, jwt_claims)
     allowed_client_roles = oidcConfig.client_roles
+    kong.log.warn("allowed_client_roles " .. tostring(allowed_client_roles))
     if allowed_client_roles == nil or table.getn(allowed_client_roles) == 0 then
         return true
     end
@@ -23,6 +24,8 @@ local function validate_client_roles(oidcConfig, jwt_claims)
             end
         end
     end
+    kong.log.warn("roles " .. tostring(roles))
+    kong.log.warn("client_id " .. tostring(oidcConfig.client_id))
 
     if table.getn(roles) == 0 then
         return nil, "Missing required role"
