@@ -165,6 +165,10 @@ function make_oidc(oidcConfig)
         kong.log.warn(err)
     end
     if not err then
+        -- force token refresh if header is present
+        if (kong.request.get_header("X-Refresh-Token")) then
+            session.data.access_token_expiration = ngx.time();
+        end
         res, err = require("resty.openidc").authenticate(oidcConfig)
     end
     if err then
